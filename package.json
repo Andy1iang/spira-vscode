@@ -13,6 +13,23 @@
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
+    "keybindings": [
+      {
+          "command": "tempextdemo.reloadInfo",
+          "key": "alt+s alt+r",
+          "mac": "ctrl+s ctrl+r"
+      },
+      {
+          "command": "workbench.view.extension.tempextdemo",
+          "key": "alt+s alt+s",
+          "mac": "ctrl+s ctrl+s"
+      },
+      {
+          "command": "tempextdemo.addTask",
+          "key": "alt+s alt+t",
+          "mac": "ctrl+s ctrl+t"
+      }
+  ],
     "commands": [
       {
         "command": "tempextdemo.addTask",
@@ -43,7 +60,32 @@
               "name": "My Assigned"
           }
       ]
-  }
+    }
+  },
+  "configuration": {
+    "title": "Demo configuration",
+    "properties": {
+        "tempextdemo.settings.refreshTime": {
+            "type": "integer",
+            "default": 60,
+            "description": "Number of seconds between refreshing data from the server. Any value below 1 will never automatically refresh. Refreshing manually will restart timing"
+        },
+        "tempextdemo.settings.showIncidents": {
+            "type": "boolean",
+            "default": true,
+            "description": "Show assigned incidents in the UI"
+        },
+        "tempext.settings.showRequirements": {
+            "type": "boolean",
+            "default": true,
+            "description": "Show assigned requirements in the UI"
+        },
+        "tempext.settings.showTasks": {
+            "type": "boolean",
+            "default": true,
+            "description": "Show assigned tasks in the UI"
+        }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

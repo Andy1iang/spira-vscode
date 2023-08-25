@@ -4,12 +4,10 @@ import * as vscode from 'vscode';
 // The module 'superagent' is used to make API calls to Spira Rest Web Service
 import * as superagent from "superagent";
 
+// The module 'uri' is used to get icons for Artifacts
 import {Uri} from 'vscode';
 
 // This method is called when extension is activated
-// Your extension is activated the very first time the command is executed
-
-
 export async function activate(context: vscode.ExtensionContext) {
 
 	//variable to store if the user has been verified
@@ -69,12 +67,17 @@ export async function activate(context: vscode.ExtensionContext) {
 			await superagent.get(`${url}/Services/v7_0/RestService.svc/projects?username=${username}&api-key=${token}`)
 			vscode.window.showInformationMessage('Credentials Are Verified')
 			verified = true;
+
+			//retrieving Artifacts
 			tasks = await retrieveInfo('Task');
 			incidents = await retrieveInfo('Incident');
 			requirements = await retrieveInfo('Requirement');
+
+			//Creating the sidebar information
 			vscode.window.registerTreeDataProvider('testing-extension', new TreeDataProvider(requirements,tasks,incidents));
 		}
 		catch{
+			//Showing error message if credentials cannot be verified
 			vscode.window.showErrorMessage('Credentials Cannot Be Verified, Please Try Again')
 		}
 	});
@@ -110,22 +113,31 @@ export async function activate(context: vscode.ExtensionContext) {
 			}
 
 			catch(error){
+				//Shows Error Message
 				vscode.window.showErrorMessage('An Error Occurred');
 			}
 		}
 
 		else{
+			//If user has not verified credentials yet
 			vscode.window.showErrorMessage('Please Verify Your Credentials First');
 		}
 	});
 
+	// Command to let user reload their information
 	let reloadInfo = vscode.commands.registerCommand('tempextdemo.reloadInfo', async () =>{
 		if(verified){
+			//retrieving (reloading) projects
 			retrieveProjects(url,username,token);
+
+			//retrieving (reloading Artifacts)
 			tasks = await retrieveInfo('Task');
 			incidents = await retrieveInfo('Incident');
 			requirements = await retrieveInfo('Requirement');
+
+			//reloading the sidebar display
 			vscode.window.registerTreeDataProvider('testing-extension', new TreeDataProvider(requirements,tasks,incidents));
+
 			vscode.window.showInformationMessage('Refreshed');
 		}
 	});
@@ -149,10 +161,15 @@ export async function activate(context: vscode.ExtensionContext) {
 	//helper function to retrieve information (tasks, incidents, & requirements) to be displayed
 	// async function retrieveInfo(infoType:string|undefined, infoList:Info[]){
 	async function retrieveInfo(infoType:string|undefined){
+
 		//infoType should either be 'Task', 'Incident', or 'Requirement'
 		let tempList: Info[] = [];
+		
+		//Making API call to get information 
 		let tempData = await superagent.get(`${url}/services/v7_0/RestService.svc/${infoType}s?username=${username}&api-key=${token}`)
 		.set('Content-Type','application/json').set('accept','application/json');
+
+		//Storing Artifact information in an array of Objects (each one represents a data field)
 		for(let i = 0; i<tempData.body.length;i++){
 			let tempInfo: Info = {};
 			tempInfo['ID'] = tempData.body[i][`${infoType}Id`];
@@ -163,6 +180,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			tempInfo['Description'] = tempData.body[i]['Description'];
 			tempInfo['URL'] = `${url}/${tempData.body[i]['ProjectId']}/${infoType}/${tempData.body[i][tempInfo['ID']]}.aspx`;
 
+			//Appending to the array
 			tempList.push(tempInfo);
 		}
 		return tempList;
@@ -173,17 +191,21 @@ export async function activate(context: vscode.ExtensionContext) {
 export function deactivate() {}
 
 
+// For displaying the sidebar (treeview - aka dropdowns )
 class TreeDataProvider implements vscode.TreeDataProvider<TreeItem> {
 
 	onDidChangeTreeData?: vscode.Event<TreeItem|null|undefined>|undefined;
   
+	//creating headers (dropdowns bars)
 	tk: TreeItem;
 	in: TreeItem;
 	rq: TreeItem;
 	header:TreeItem[] = [];
   
+	//taking in Artifact Information
 	constructor(requirements:any,tasks:any,incidents:any) {
 
+	  //Adding requirements to Dropdown (TreeItem)
 	  let rqList:TreeItem[] = []
 	  for(let i = 0; i<requirements.length;i++){
 		let temprq = new TreeItem(`${requirements[i]['Name']} - [RQ:${requirements[i]['ID']}]`)
@@ -192,6 +214,7 @@ class TreeDataProvider implements vscode.TreeDataProvider<TreeItem> {
 	  }
 	  this.rq = new TreeItem(`REQUIREMENTS (${requirements.length})`, rqList);
 
+	  //Adding tasks to Dropdown (TreeItem)
 	  let tkList:TreeItem[] = []
 	  for(let i = 0; i<tasks.length;i++){
 		let temptk = new TreeItem(`${tasks[i]['Name']} - [TK:${tasks[i]['ID']}]`)
@@ -200,6 +223,7 @@ class TreeDataProvider implements vscode.TreeDataProvider<TreeItem> {
 	  }
 	  this.tk = new TreeItem(`TASKS (${tasks.length})`, tkList);
 
+	  //Adding incidents to Dropdown (TreeItem)
 	  let inList:TreeItem[] = []
 	  for(let i = 0; i<incidents.length;i++){
 		let tempin = new TreeItem(`${incidents[i]['Name']} - [IN:${incidents[i]['ID']}]`)
@@ -207,12 +231,15 @@ class TreeDataProvider implements vscode.TreeDataProvider<TreeItem> {
 		inList.push(tempin);
 	  }
 	  this.in = new TreeItem(`INCIDENTS (${incidents.length})`,inList);
+
+
 	  this.header.push(this.tk);
 	  this.header.push(this.in);
 	  this.header.push(this.rq);
 
 	}
   
+	//Helper code taken from: https://stackoverflow.com/questions/56534723/simple-example-to-implement-vs-code-treedataprovider-with-json-data
 	getTreeItem(element: TreeItem): vscode.TreeItem|Thenable<vscode.TreeItem> {
 	  return element;
 	}
@@ -225,6 +252,7 @@ class TreeDataProvider implements vscode.TreeDataProvider<TreeItem> {
 	}
   }
   
+  //Helper code taken from: https://stackoverflow.com/questions/56534723/simple-example-to-implement-vs-code-treedataprovider-with-json-data
   class TreeItem extends vscode.TreeItem {
 	children: TreeItem[]|undefined;
   
@@ -232,7 +260,7 @@ class TreeDataProvider implements vscode.TreeDataProvider<TreeItem> {
 	  super(
 		  label,
 		  children === undefined ? vscode.TreeItemCollapsibleState.None :
-								   vscode.TreeItemCollapsibleState.Collapsed);
+								   vscode.TreeItemCollapsibleState.Collapsed); //Dropdown is first set to collapsed state
 	  this.children = children;
 	}
 
